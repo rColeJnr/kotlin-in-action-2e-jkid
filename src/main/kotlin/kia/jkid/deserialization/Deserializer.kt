@@ -4,9 +4,12 @@ import kia.jkid.isPrimitiveOrString
 import kia.jkid.serializerForBasicType
 import java.io.Reader
 import java.io.StringReader
+import java.lang.reflect.ParameterizedType
+import java.lang.reflect.Type
 import kotlin.reflect.KClass
 import kotlin.reflect.KParameter
 import kotlin.reflect.KType
+import kotlin.reflect.jvm.javaType
 import kotlin.reflect.full.isSubtypeOf
 import kotlin.reflect.full.starProjectedType
 
@@ -49,8 +52,17 @@ private fun isSubtypeOfList(type: KType): Boolean {
     return type.isSubtypeOf(listType)
 }
 
+private fun isSubtypeOfMap(type: KType): Boolean {
+    val mapType: KType = Map::class.starProjectedType
+    return type.isSubtypeOf(mapType)
+}
+
 private fun getParameterizedType(type: KType): KType {
     return type.arguments.single().type!!
+}
+
+private fun getMapParameterizedType(type: KType): KType {
+    return type.arguments[1].type!!
 }
 
 fun Seed.createSeedForType(paramType: KType, isList: Boolean): Seed {
@@ -66,9 +78,34 @@ fun Seed.createSeedForType(paramType: KType, isList: Boolean): Seed {
         return ObjectListSeed(elementType, classInfoCache)
     }
     if (isList) throw JKidException("Object of the type $paramType expected, not an array")
+
+    if (isSubtypeOfMap(paramType)) {
+
+        val elementType = getMapParameterizedType(paramType)
+        return MapSeed(elementType, classInfoCache)
+    }
+
     return ObjectSeed(paramClass, classInfoCache)
 }
 
+class MapSeed(
+    val elementType: KType,
+    override val classInfoCache: ClassInfoCache
+): Seed {
+
+    private val valueMap = mutableMapOf<String, Any?>()
+    private val seedMap = mutableMapOf<String, Seed>()
+
+    override fun setSimpleProperty(propertyName: String, value: Any?) {
+        valueMap[propertyName] = value
+    }
+
+    override fun createCompositeProperty(propertyName: String, isList: Boolean) =
+        createSeedForType(elementType as KType, false).apply { seedMap[propertyName] = this }
+
+    override fun spawn(): Map<String, Any?> =
+        valueMap + seedMap.mapValues { it.value.spawn() }
+}
 
 class ObjectSeed<out T: Any>(
         targetClass: KClass<T>,

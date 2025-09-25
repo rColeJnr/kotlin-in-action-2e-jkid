@@ -2,6 +2,11 @@ package kia.jkid
 
 import kotlin.reflect.KClass
 
+/**
+ * You create annotation JsonExclude,
+ * this annotation targets poperties, what mean it can only be used
+ * to annotate properties
+ */
 @Target(AnnotationTarget.PROPERTY)
 annotation class JsonExclude
 

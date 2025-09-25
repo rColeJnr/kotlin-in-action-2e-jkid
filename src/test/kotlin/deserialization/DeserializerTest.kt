@@ -9,8 +9,8 @@ import kotlin.test.assertNull
 
 class DeserializerTest {
     @Test fun testSimple() {
-        val result = deserialize<SingleStringProp>("""{"s": "x"}""")
-        assertEquals("x", result.s)
+        val result = deserialize<SingleStringProp>("""{"s": "ex"}""")
+        assertEquals("ex", result.s)
     }
 
     @Test fun testIntLong() {
